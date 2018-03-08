@@ -1,1 +1,1 @@
-module.exports = require('./lib/node-template').default
+module.exports = require('./lib/PFS-tools').default

@@ -1,28 +1,30 @@
 {
-  "name": "node-template",
+  "name": "PFS-tools",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "scripts": {
     "pretest": "npm run compile",
     "prepublish": "npm run compile",
-    "prestart": "rm -rf lib",
     "compile": "rm -rf lib && babel src -s --out-dir lib",
-    "start": "babel src -s -w --out-dir lib",
-    "test": "jasmine"
+    "watcher": "babel src -s -w --out-dir lib",
+    "test": "jasmine",
+    "start": "./node_modules/babel-cli/bin/babel-node.js src/main.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/winton/node-template.git"
+    "url": "git+ssh://git@github.com/thangpham/PFS-tools.git"
   },
   "author": "Winton Welsh <winton@inverse.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/winton/node-template/issues"
+    "url": "https://github.com/thangpham/PFS-tools/issues"
   },
-  "homepage": "https://github.com/winton/node-template#readme",
+  "homepage": "https://github.com/thangpham/PFS-tools#readme",
   "dependencies": {
-    "babel-runtime": "^6.26.0"
+    "babel-runtime": "^6.26.0",
+    "chalk": "^2.3.2",
+    "console-stamp": "^0.2.6"
   },
   "devDependencies": {
     "babel": "^6.23.0",

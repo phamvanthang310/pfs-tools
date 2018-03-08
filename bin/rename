@@ -15,11 +15,11 @@ declare -a files=("spec/**/*" "src/*" "index.js" "package.json" "README.md" "bin
 
 for file in "${files[@]}"
 do
-  perl -pi -w -e "s/winton\/node-template/$ntuser\/$ntrepo/g;" $file
-  perl -pi -w -e "s/node-template/$ntrepo/g;" $file
-  perl -pi -w -e "s/NodeTemplate/$ntclass/g;" $file
+  perl -pi -w -e "s/winton\/PFS-tools/$ntuser\/$ntrepo/g;" $file
+  perl -pi -w -e "s/PFS-tools/$ntrepo/g;" $file
+  perl -pi -w -e "s/main/$ntclass/g;" $file
 done
 
-mv spec/integrate/node-template.spec.js spec/integrate/$ntfname.spec.js
-mv spec/unit/node-template.spec.js spec/unit/$ntfname.spec.js
-mv src/node-template.js src/$ntfname.js
+mv spec/integrate/PFS-tools.spec.js spec/integrate/$ntfname.spec.js
+mv spec/unit/PFS-tools.spec.js spec/unit/$ntfname.spec.js
+mv src/PFS-tools.js src/$ntfname.js
