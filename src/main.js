@@ -1,6 +1,6 @@
 import ConsoleStamp from 'console-stamp';
-import fs from 'fs';
-import { default as logger, logDebug, logInfo } from './utils/logger';
+import { default as logger } from './utils/logger';
+import { default as fileUtils } from './utils/file';
 
 class Main {
 
@@ -17,42 +17,34 @@ class Main {
     logger.logError('log error');
     logger.logInfo('log info');
 
-    this.walkThoughDir();
-  }
-
-  walkThoughDir() {
-    let walk = function (dir, done) {
-      let results = [];
-      fs.readdir(dir, function (err, list) {
-        if (err) return done(err);
-        let i = 0;
-        (function next() {
-          let file = list[i++];
-          if (!file) return done(null, results);
-          file = dir + '/' + file;
-          fs.stat(file, function (err, stat) {
-            if (stat && stat.isDirectory()) {
-              walk(file, function (err, res) {
-                results = results.concat(res);
-                next();
-              });
-            } else {
-              results.push(file);
-              next();
-            }
-          });
-        })();
+    fileUtils.walkThoughDir(this.rootDir)
+      .then((results) => {
+        // Filter out .jsp files
+        results = results.filter(filePath => /^(.*\.((jsp)$)).*$/.test(filePath));
+        for (let result of results) {
+          logger.logNormal(result);
+        }
+        logger.logHighlight(results.length);
+      })
+      .catch(error => {
+        logger.logError(error);
+        process.exit(-1);
       });
-    };
 
-    walk(this.rootDir, function (err, results) {
-      if (err) throw err;
-      for (let result of results) {
-        logger.logNormal(result);
-      }
-    });
+    fileUtils.readFile('/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-webapp/pfs-war/src/main/webapp/eln/ELNTest.jsp')
+      .then(data => {
+        logger.logInfo(data);
+      })
+      .catch(error => {
+        logger.logError(error);
+        process.exit(-1);
+      });
   }
+}
 
+if (process.argv.length <= 2) {
+  logger.logError(`Usage: npm start [path/to/directory]`);
+  process.exit(-1);
 }
 
 const app = new Main(process.argv);
