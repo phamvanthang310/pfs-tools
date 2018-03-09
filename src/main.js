@@ -31,14 +31,19 @@ class Main {
         process.exit(-1);
       });
 
-    fileUtils.readFile('/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-webapp/pfs-war/src/main/webapp/eln/ELNTest.jsp')
+    fileUtils.readFile('/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-webapp/pfs-war/src/main/webapp/core/Login.jsp')
       .then(data => {
-        logger.logInfo(data);
+        logger.logNormal(this.extractText(data));
       })
       .catch(error => {
         logger.logError(error);
         process.exit(-1);
       });
+  }
+
+  extractText(data) {
+    const regEx = /<[^>]+>*/gmi;
+    return data.replace(regEx, '');
   }
 }
 
