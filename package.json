@@ -24,7 +24,8 @@
   "dependencies": {
     "babel-runtime": "^6.26.0",
     "chalk": "^2.3.2",
-    "console-stamp": "^0.2.6"
+    "console-stamp": "^0.2.6",
+    "lodash": "^4.17.5"
   },
   "devDependencies": {
     "babel": "^6.23.0",
