@@ -7,21 +7,30 @@ class Main {
 
   // Ignored the 2 very first arguments (node and js endpoint as always)
   constructor([, , ...programArgs]) {
-    ConsoleStamp(console, { pattern: 'dd/mm/yyyy HH:MM:ss.l' });
-    logger.logDebug(programArgs);
+    ConsoleStamp(console, {
+      pattern: 'dd/mm/yyyy HH:MM:ss.l',
+      colors: {
+        stamp: 'yellow',
+        label: 'blue',
+      },
+    });
+    logger.debug(programArgs);
     this.rootDir = programArgs[0]; // First argument is path
+    this.distDir = './dist';
   }
 
   start() {
     fileUtils.isFile(this.rootDir).then(result => {
+      fileUtils.createDirectory(this.distDir);
+
       if (result) {
         this._processFile(this.rootDir);
       } else {
         this._processDirectory();
       }
     }).catch(error => {
-      logger.logError('Fail when executed fs.stat');
-      logger.logError(error);
+      logger.error('Fail when executed fs.stat');
+      logger.error(error);
       process.exit(-1);
     });
   }
@@ -32,15 +41,14 @@ class Main {
         // Filter out .jsp files
         results = results.filter(filePath => /^(.*\.((jsp)$)).*$/.test(filePath));
         for (let result of results) {
-          logger.logNormal(result);
-          // const filePath = '/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-webapp/pfs-war/src/main/webapp/core/CellDetails.jsp';
+          logger.normal(result);
           this._processFile(result);
         }
-        logger.logHighlight(`Total: ${results.length}`);
+        logger.highlightGreen(`Total: ${results.length}`);
       })
       .catch(error => {
-        logger.logError(`Fail when process directory: ${this.rootDir}`);
-        logger.logError(error);
+        logger.error(`Fail when process directory: ${this.rootDir}`);
+        logger.error(error);
         process.exit(-1);
       });
   }
@@ -74,7 +82,7 @@ class Main {
       const propKey2 = contentWords.join('.');
 
       const prop = `${propKey1}.${propKey2} = ${extractedText}`;
-      logger.logNormal(prop);
+      logger.normal(prop);
       props.push(prop);
     }
 
@@ -86,23 +94,22 @@ class Main {
       .then(data => {
         const fileName = this._extractFileName(filePath);
         const content = this._extractText(data);
-        logger.logNormal(`fileName: ${fileName}`);
-        // logger.logNormal(`content: ${content}`);
+        logger.highlightGreen(`fileName: ${fileName}`);
 
         const props = this._buildProps(fileName, content);
-        fileUtils.writeFile(`/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-tools/dist/${fileName}.properties`, props).then(result => {
-          if (result) logger.logHighlight(`[${fileName}.properties] is exported successfully!`);
-        }).catch(error => logger.logError(error));
+        fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props).then(result => {
+          if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
+        }).catch(error => logger.error(error));
       })
       .catch(error => {
-        logger.logError(error);
+        logger.error(error);
         process.exit(-1);
       });
   }
 }
 
 if (process.argv.length <= 2) {
-  logger.logError(`Usage: npm start [path/to/directory]`);
+  logger.error(`Usage: npm start [path/to/directory]`);
   process.exit(-1);
 }
 

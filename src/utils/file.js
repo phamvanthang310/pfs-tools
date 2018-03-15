@@ -60,9 +60,14 @@ const writeFile = (fileName, array) => {
   });
 };
 
+const createDirectory = (dir) => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+};
+
 export default {
   walkThoughDir,
   readFile,
   writeFile,
   isFile,
+  createDirectory,
 };

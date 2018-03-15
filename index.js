@@ -1,1 +1,1 @@
-module.exports = require('./lib/PFS-tools').default
+module.exports = require('./lib/main').default
