@@ -47,7 +47,7 @@ class Main {
 
   _extractText(data, callback) {
     // const regex = /<.*>([^.#@!$^&':;*,()}][\s\w]*[\d\w.#@!$^&':;*,()]+)[^>]*<\/.*>/gmi;
-    const regex = /<(?![\s\w]*script).*>([^.#@!^&':;*,()}][\s\w]*[\d\w.#@!$^&':;*,()]+)[^>]*<\/.*>/gmi;
+    const regex = /<(?![\s\w]*script).*>([^.#@!^&':;*,()?}][\s\w]*[\d\w.#@!$^&':;*,()?]+)[^>]*<\/.*>/gmi;
     const result = [];
     let tmp;
     while (tmp = regex.exec(data)) {
@@ -65,15 +65,20 @@ class Main {
   _buildProps(fileName, extractedTexts) {
     // props format: file.name.extracted.text = extractedText
     // props key: word by word
+    const props = [];
     const fileWords = _.words(fileName).map(word => word.toLowerCase());
-    const propsKey1 = fileWords.join('.');
+    const propKey1 = fileWords.join('.');
 
     for (let extractedText of extractedTexts) {
       const contentWords = _.words(extractedText).map(word => word.toLowerCase());
-      const propsKey2 = contentWords.join('.');
+      const propKey2 = contentWords.join('.');
 
-      logger.logHighlight(`${propsKey1}.${propsKey2} = ${extractedText}`);
+      const prop = `${propKey1}.${propKey2} = ${extractedText}`;
+      logger.logNormal(prop);
+      props.push(prop);
     }
+
+    return props;
   }
 
   _processFile(filePath) {
@@ -83,7 +88,11 @@ class Main {
         const content = this._extractText(data);
         logger.logNormal(`fileName: ${fileName}`);
         // logger.logNormal(`content: ${content}`);
-        this._buildProps(fileName, content);
+
+        const props = this._buildProps(fileName, content);
+        fileUtils.writeFile(`/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-tools/dist/${fileName}.properties`, props).then(result => {
+          if (result) logger.logHighlight(`[${fileName}.properties] is exported successfully!`);
+        }).catch(error => logger.logError(error));
       })
       .catch(error => {
         logger.logError(error);
