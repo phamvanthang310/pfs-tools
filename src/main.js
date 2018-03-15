@@ -73,7 +73,7 @@ class Main {
   _buildProps(fileName, extractedTexts) {
     // props format: file.name.extracted.text = extractedText
     // props key: word by word
-    const props = [];
+    const props = new Set();
     const fileWords = _.words(fileName).map(word => word.toLowerCase());
     const propKey1 = fileWords.join('.');
 
@@ -82,11 +82,11 @@ class Main {
       const propKey2 = contentWords.join('.');
 
       const prop = `${propKey1}.${propKey2} = ${extractedText}`;
-      logger.normal(prop);
-      props.push(prop);
+      props.add(prop);
     }
 
-    return props;
+    props.forEach(p => logger.normal(p));
+    return Array.from(props);
   }
 
   _processFile(filePath) {
@@ -97,9 +97,11 @@ class Main {
         logger.highlightGreen(`fileName: ${fileName}`);
 
         const props = this._buildProps(fileName, content);
-        fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props).then(result => {
-          if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
-        }).catch(error => logger.error(error));
+        fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props)
+          .then(result => {
+            if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
+          })
+          .catch(error => logger.error(error));
       })
       .catch(error => {
         logger.error(error);
