@@ -9,10 +9,24 @@ class Main {
   constructor([, , ...programArgs]) {
     ConsoleStamp(console, { pattern: 'dd/mm/yyyy HH:MM:ss.l' });
     logger.logDebug(programArgs);
-    this.rootDir = programArgs[0]; // First argument is rootDir
+    this.rootDir = programArgs[0]; // First argument is path
   }
 
   start() {
+    fileUtils.isFile(this.rootDir).then(result => {
+      if (result) {
+        this._processFile(this.rootDir);
+      } else {
+        this._processDirectory();
+      }
+    }).catch(error => {
+      logger.logError('Fail when executed fs.stat');
+      logger.logError(error);
+      process.exit(-1);
+    });
+  }
+
+  _processDirectory() {
     fileUtils.walkThoughDir(this.rootDir)
       .then((results) => {
         // Filter out .jsp files
@@ -20,16 +34,15 @@ class Main {
         for (let result of results) {
           logger.logNormal(result);
           // const filePath = '/home/thangpham/Documents/Working_Space/Core-Informatics/pfs-webapp/pfs-war/src/main/webapp/core/CellDetails.jsp';
-          this._fileProcess(result);
+          this._processFile(result);
         }
         logger.logHighlight(`Total: ${results.length}`);
       })
       .catch(error => {
+        logger.logError(`Fail when process directory: ${this.rootDir}`);
         logger.logError(error);
         process.exit(-1);
       });
-
-
   }
 
   _extractText(data, callback) {
@@ -63,7 +76,7 @@ class Main {
     }
   }
 
-  _fileProcess(filePath) {
+  _processFile(filePath) {
     fileUtils.readFile(filePath)
       .then(data => {
         const fileName = this._extractFileName(filePath);
