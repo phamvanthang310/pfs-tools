@@ -46,7 +46,7 @@ const isFile = (path) => {
   return new Promise((resolve, reject) => {
     fs.stat(path, (err, stat) => {
       if (err) reject(err);
-      resolve(stat.isFile());
+      resolve(stat && stat.isFile());
     });
   });
 };
