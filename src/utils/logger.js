@@ -17,7 +17,7 @@ export const info = (str) => {
 };
 
 export const debug = (str) => {
-  console.log(chalk.white(str));
+  console.log(chalk.blue(str));
 };
 
 export const error = (str) => {

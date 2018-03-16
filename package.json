@@ -9,7 +9,7 @@
     "compile": "rm -rf lib && babel src -s --out-dir lib",
     "watcher": "babel src -s -w --out-dir lib",
     "test": "jasmine",
-    "start": "./node_modules/babel-cli/bin/babel-node.js src/main.js"
+    "start": "./node_modules/babel-cli/bin/babel-node.js src/Main.js"
   },
   "repository": {
     "type": "git",
@@ -25,7 +25,9 @@
     "babel-runtime": "^6.26.0",
     "chalk": "^2.3.2",
     "console-stamp": "^0.2.6",
-    "lodash": "^4.17.5"
+    "google-translate": "^2.1.0",
+    "lodash": "^4.17.5",
+    "yargs": "^11.0.0"
   },
   "devDependencies": {
     "babel": "^6.23.0",
