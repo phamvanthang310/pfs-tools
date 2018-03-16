@@ -1,9 +1,10 @@
 import PfsTool from './PfsTool';
 import yargs from 'yargs';
 import GoogleClient from './GoogleClient';
+import logger from './utils/logger';
 
 yargs
-  .usage('$0 <cmd> [args]')
+  .usage('node $0 <commands> [args]')
   .options({
     'dist': {
       alias: 'd',
@@ -16,15 +17,19 @@ yargs
       describe: 'Target language for translation',
     }
   })
-  .command('scan [path]', 'Run tool to scan directory/file', {},
+  .command('scan [src]', 'Run tool to scan directory/file', {},
     (opts) => {
-      const app = new PfsTool(opts.path, opts.dist);
+      const app = new PfsTool(opts);
       app.start();
     })
   .command('translate [text]', 'Translate a english text to specify language (default is zh)', {},
     (opts) => {
       const googleClient = new GoogleClient(opts.target);
-      googleClient.translate(opts.text);
+      googleClient.translate(opts.text)
+        .then(result => {
+          logger.info(result.translatedText);
+        })
+        .catch(err => logger.error(err));
     })
   .demandCommand(1, 'You need at least one command before moving on')
   .recommendCommands()

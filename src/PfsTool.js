@@ -1,12 +1,12 @@
 import ConsoleStamp from 'console-stamp';
+import GoogleClient from './GoogleClient';
 import _ from 'lodash';
-import { default as logger } from './utils/logger';
-import { default as fileUtils } from './utils/file';
+import logger from './utils/logger';
+import fileUtils from './utils/file';
 
 export default class PfsTool {
 
-  // Ignored the 2 very first arguments (node and js endpoint as always)
-  constructor(path, distDir) {
+  constructor(opts) {
     ConsoleStamp(console, {
       pattern: 'dd/mm/yyyy HH:MM:ss.l',
       colors: {
@@ -14,17 +14,20 @@ export default class PfsTool {
         label: 'blue',
       },
     });
-    logger.debug(path);
-    this.rootDir = path; // First argument is path
-    this.distDir = distDir;
+    logger.debug(opts.src);
+
+    this.translator = new GoogleClient(opts.target);
+    this.target = opts.target;
+    this.srcDir = opts.src;
+    this.distDir = opts.dist;
   }
 
   start() {
-    fileUtils.isFile(this.rootDir).then(result => {
+    fileUtils.isFile(this.srcDir).then(result => {
       fileUtils.createDirectory(this.distDir);
 
       if (result) {
-        this._processFile(this.rootDir);
+        this._processFile(this.srcDir);
       } else {
         this._processDirectory();
       }
@@ -36,7 +39,7 @@ export default class PfsTool {
   }
 
   _processDirectory() {
-    fileUtils.walkThoughDir(this.rootDir)
+    fileUtils.walkThoughDir(this.srcDir)
       .then((results) => {
         // Filter out .jsp files
         results = results.filter(filePath => /^(.*\.((jsp)$)).*$/.test(filePath));
@@ -47,7 +50,7 @@ export default class PfsTool {
         logger.highlightGreen(`Total: ${results.length}`);
       })
       .catch(error => {
-        logger.error(`Fail when process directory: ${this.rootDir}`);
+        logger.error(`Fail when process directory: ${this.srcDir}`);
         logger.error(error);
         process.exit(-1);
       });
@@ -73,39 +76,57 @@ export default class PfsTool {
   _buildProps(fileName, extractedTexts) {
     // props format: file.name.extracted.text = extractedText
     // props key: word by word
-    const props = new Set();
+    const originProps = new Set();
+    const translatedProps = new Set();
+
     const fileWords = _.words(fileName).map(word => word.toLowerCase());
     const propKey1 = fileWords.join('.');
 
     for (let extractedText of extractedTexts) {
-      const contentWords = _.words(extractedText).map(word => word.toLowerCase());
-      const propKey2 = contentWords.join('.');
+      const contentWords = _.words(extractedText.originalText).map(word => word.toLowerCase());
+      const propKey = `${propKey1}.${contentWords.join('.')}`;
 
-      const prop = `${propKey1}.${propKey2} = ${extractedText}`;
-      props.add(prop);
+      originProps.add(`${propKey} = ${extractedText.originalText}`);
+      translatedProps.add(`${propKey} = ${extractedText.translatedText}`);
     }
 
-    props.forEach(p => logger.normal(p));
-    return Array.from(props);
+    return {
+      origin: Array.from(originProps),
+      translated: Array.from(translatedProps)
+    };
   }
 
   _processFile(filePath) {
     fileUtils.readFile(filePath)
-      .then(data => {
+      .then(content => {
         const fileName = this._extractFileName(filePath);
-        const content = this._extractText(data);
+        const extractedTexts = this._extractText(content);
         logger.highlightGreen(`fileName: ${fileName}`);
 
-        const props = this._buildProps(fileName, content);
-        fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props)
-          .then(result => {
-            if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
-          })
-          .catch(error => logger.error(error));
+        this._translateExtractedTexts(fileName, extractedTexts);
       })
       .catch(error => {
         logger.error(error);
         process.exit(-1);
       });
+  }
+
+  _translateExtractedTexts(fileName, texts) {
+    this.translator.translate([...texts])
+      .then(extractedTexts => {
+        const props = this._buildProps(fileName, extractedTexts);
+
+        this._exportPropsFile(fileName, props.origin);
+        this._exportPropsFile(`${fileName}_${this.target}`, props.translated);
+      })
+      .catch(error => logger.error(error));
+  }
+
+  _exportPropsFile(fileName, props) {
+    fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props)
+      .then(result => {
+        if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
+      })
+      .catch(error => logger.error(error));
   }
 }
