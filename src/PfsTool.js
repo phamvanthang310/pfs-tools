@@ -3,10 +3,10 @@ import _ from 'lodash';
 import { default as logger } from './utils/logger';
 import { default as fileUtils } from './utils/file';
 
-class Main {
+export default class PfsTool {
 
   // Ignored the 2 very first arguments (node and js endpoint as always)
-  constructor([, , ...programArgs]) {
+  constructor(path, distDir) {
     ConsoleStamp(console, {
       pattern: 'dd/mm/yyyy HH:MM:ss.l',
       colors: {
@@ -14,9 +14,9 @@ class Main {
         label: 'blue',
       },
     });
-    logger.debug(programArgs);
-    this.rootDir = programArgs[0]; // First argument is path
-    this.distDir = './dist';
+    logger.debug(path);
+    this.rootDir = path; // First argument is path
+    this.distDir = distDir;
   }
 
   start() {
@@ -109,11 +109,3 @@ class Main {
       });
   }
 }
-
-if (process.argv.length <= 2) {
-  logger.error(`Usage: npm start [path/to/directory]`);
-  process.exit(-1);
-}
-
-const app = new Main(process.argv);
-app.start();
