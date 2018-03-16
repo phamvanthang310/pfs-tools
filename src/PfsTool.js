@@ -79,8 +79,10 @@ export default class PfsTool {
     const originProps = new Set();
     const translatedProps = new Set();
 
-    const fileWords = _.words(fileName).map(word => word.toLowerCase());
-    const propKey1 = fileWords.join('.');
+    const propKey1 = _.words(fileName).map(word => word.toLowerCase()).join('.');
+
+    // Convert extractedTexts into array when it has one text
+    if (!_.isArray(extractedTexts)) extractedTexts = [extractedTexts];
 
     for (let extractedText of extractedTexts) {
       const contentWords = _.words(extractedText.originalText).map(word => word.toLowerCase());
@@ -106,6 +108,7 @@ export default class PfsTool {
         this._translateExtractedTexts(fileName, extractedTexts);
       })
       .catch(error => {
+        logger.error(`fail when processFile ${filePath}`);
         logger.error(error);
         process.exit(-1);
       });
