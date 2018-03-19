@@ -51,9 +51,13 @@ const isFile = (path) => {
   });
 };
 
-const writeFile = (fileName, array) => {
+const writeArrayToFile = (fileName, array) => {
+  return writeFile(fileName, array.join('\n'));
+};
+
+const writeFile = (filePath, data) => {
   return new Promise((resolve, reject) => {
-    fs.writeFile(fileName, array.join('\n'), (err) => {
+    fs.writeFile(filePath, data, (err) => {
       if (err) reject(err);
       resolve(true);
     });
@@ -67,6 +71,7 @@ const createDirectory = (dir) => {
 export default {
   walkThoughDir,
   readFile,
+  writeArrayToFile,
   writeFile,
   isFile,
   createDirectory,

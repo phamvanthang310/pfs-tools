@@ -130,7 +130,7 @@ export default class PfsTool {
         this._exportPropsFile(fileName, propsMap.origin);
         this._exportPropsFile(`${fileName}_${this.target}`, propsMap.translated);
 
-        console.log(this._replaceTextByTaglib(content, propsMap.origin));
+        this._replaceTextByTaglib(filePath, content, propsMap.origin);
       })
       .catch(error => {
         logger.error(`fail when processFile ${filePath}`);
@@ -142,20 +142,23 @@ export default class PfsTool {
   _exportPropsFile(fileName: string, propsMap: Map<string, string>): void {
     const props: Array<string> = Array.from(propsMap, ([text, propKey]) => `${propKey} = ${text}`);
 
-    fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props)
+    fileUtils.writeArrayToFile(`${this.distDir}/${fileName}.properties`, props)
       .then(result => {
         if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
       })
       .catch(error => logger.error(error));
   }
 
-  _replaceTextByTaglib(content: string, propsMap: Map<string, string>): string {
+  _replaceTextByTaglib(filePath: string, content: string, propsMap: Map<string, string>): string {
     const replacer = (match, g1, g2, g3) => {
       const propKey = propsMap.get(g2) || g2;
       return `${g1}<fmt:message key="${propKey}" />${g3}`;
     };
 
-    return content.replace(this.textExtractRegex, replacer);
+    const newContent = content.replace(this.textExtractRegex, replacer);
+    fileUtils.writeFile(filePath, newContent);
+
+    return newContent;
   }
 }
 
