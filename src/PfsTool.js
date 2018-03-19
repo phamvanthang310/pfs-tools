@@ -1,3 +1,5 @@
+// @flow
+
 import ConsoleStamp from 'console-stamp';
 import GoogleClient from './GoogleClient';
 import _ from 'lodash';
@@ -5,8 +7,13 @@ import logger from './utils/logger';
 import fileUtils from './utils/file';
 
 export default class PfsTool {
+  textExtractRegex: RegExp;
+  translator: any;
+  target: string;
+  srcDir: string;
+  distDir: string;
 
-  constructor(opts) {
+  constructor(opts: OptionArgument) {
     ConsoleStamp(console, {
       pattern: 'dd/mm/yyyy HH:MM:ss.l',
       colors: {
@@ -23,7 +30,7 @@ export default class PfsTool {
     this.distDir = opts.dist;
   }
 
-  start() {
+  start(): void {
     fileUtils.isFile(this.srcDir).then(result => {
       fileUtils.createDirectory(this.distDir);
 
@@ -39,7 +46,7 @@ export default class PfsTool {
     });
   }
 
-  _processDirectory() {
+  _processDirectory(): void {
     fileUtils.walkThoughDir(this.srcDir)
       .then((results) => {
         // Filter out .jsp files
@@ -57,7 +64,7 @@ export default class PfsTool {
       });
   }
 
-  _extractText(data) {
+  _extractText(data: string): Array<string> {
     const result = [];
     let tmp;
 
@@ -68,15 +75,15 @@ export default class PfsTool {
     return result;
   }
 
-  _extractFileName(filePath) {
+  _extractFileName(filePath: string): string {
     const regex = /^.*\/([\w]*).jsp$/gmi;
     return regex.exec(filePath)[1];
   }
 
-  _buildPropKey(fileName, extractedText) {
+  _buildPropKey(fileName: string, extractedText: string): string {
     // props format: file.name.extracted.text = extractedText
     // props key: word by word
-    const toWordByWord = (text) => _.words(text).map(word => word.toLowerCase()).join('.');
+    const toWordByWord = (text: string) => _.words(text).map(word => word.toLowerCase()).join('.');
 
     const propKey1 = toWordByWord(fileName);
     const propKey2 = toWordByWord(extractedText);
@@ -84,15 +91,17 @@ export default class PfsTool {
     return `${propKey1}.${propKey2}`;
   }
 
-  _buildPropsMap(fileName, extractedTexts) {
-    const origin = new Map();
-    const translated = new Map();
+  _buildPropsMap(fileName: string, extractedTexts: any): Property {
+    const origin: Map<string, string> = new Map();
+    const translated: Map<string, string> = new Map();
 
     // Convert extractedTexts into array when it has one text
-    if (!_.isArray(extractedTexts)) extractedTexts = [extractedTexts];
+    if (!_.isArray(extractedTexts)) {
+      extractedTexts = [extractedTexts];
+    }
 
-    extractedTexts.forEach(extractedText => {
-      const propKey = this._buildPropKey(fileName, extractedText.originalText);
+    extractedTexts.forEach((extractedText: ExtractedText) => {
+      const propKey: string = this._buildPropKey(fileName, extractedText.originalText);
 
       // To make sure each text is unique, text is the key of map
       origin.set(extractedText.originalText, propKey);
@@ -105,14 +114,14 @@ export default class PfsTool {
     };
   }
 
-  _processFile(filePath) {
+  _processFile(filePath: string): void {
     fileUtils.readFile(filePath)
       .then(content => {
         const extractedTexts = this._extractText(content);
 
         return Promise.all([content, this.translator.translate([...extractedTexts])]);
       })
-      .then(([content, translatedTexts]) => {
+      .then(([content, translatedTexts]: [string, Array<ExtractedText>]) => {
         const fileName = this._extractFileName(filePath);
         logger.highlightGreen(`fileName: ${fileName}`);
 
@@ -130,8 +139,8 @@ export default class PfsTool {
       });
   }
 
-  _exportPropsFile(fileName, propsMap) {
-    const props = Array.from(propsMap, ([text, propKey]) => `${propKey} = ${text}`);
+  _exportPropsFile(fileName: string, propsMap: Map<string, string>): void {
+    const props: Array<string> = Array.from(propsMap, ([text, propKey]) => `${propKey} = ${text}`);
 
     fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props)
       .then(result => {
@@ -140,7 +149,7 @@ export default class PfsTool {
       .catch(error => logger.error(error));
   }
 
-  _replaceTextByTaglib(content, propsMap) {
+  _replaceTextByTaglib(content: string, propsMap: Map<string, string>): string {
     const replacer = (match, g1, g2, g3) => {
       const propKey = propsMap.get(g2) || g2;
       return `${g1}<fmt:message key="${propKey}" />${g3}`;
@@ -148,4 +157,20 @@ export default class PfsTool {
 
     return content.replace(this.textExtractRegex, replacer);
   }
+}
+
+type ExtractedText = {
+  originalText: string,
+  translatedText: string,
+}
+
+type OptionArgument = {
+  target: string,
+  src: string,
+  dist: string,
+}
+
+type Property = {
+  origin: Map<string, string>,
+  translated: Map<string, string>,
 }
