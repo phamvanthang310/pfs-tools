@@ -9,6 +9,7 @@ Property files are exported under `/dist` directory. File name format: `{filenam
 * **target:** is the language tag which used in google API translator.
 
 ### Example:
+#### Input
 example.jsp:
 ```jsp
 <div class="list-group-item">
@@ -18,6 +19,18 @@ example.jsp:
     </div>
 </div>
 ```
+
+#### Output
+example.jsp
+```jsp
+<div class="list-group-item">
+    <div class="row">
+        <div class="col-sm-4"><label><fmt:message key="entity.type.details.should.this.entity.type.be.navigable" /></label></div>
+        <div class="col-sm-8"><%=entityType.isNavigable()%></div>
+    </div>
+</div>
+```
+
 result.properties
 ```properties
 entity.type.details.should.this.entity.type.be.navigable = Should this Entity Type be navigable?:
