@@ -1,3 +1,5 @@
+// @flow
+
 import ConsoleStamp from 'console-stamp';
 import GoogleClient from './GoogleClient';
 import _ from 'lodash';
@@ -5,8 +7,13 @@ import logger from './utils/logger';
 import fileUtils from './utils/file';
 
 export default class PfsTool {
+  textExtractRegex: RegExp;
+  translator: any;
+  target: string;
+  srcDir: string;
+  distDir: string;
 
-  constructor(opts) {
+  constructor(opts: OptionArgument) {
     ConsoleStamp(console, {
       pattern: 'dd/mm/yyyy HH:MM:ss.l',
       colors: {
@@ -16,13 +23,14 @@ export default class PfsTool {
     });
     logger.debug(opts.src);
 
+    this.textExtractRegex = /(<(?![\s\w]*script).*>)([^.#@!^&':;*,()?}][\s\w]*[\d\w.#@!$^&':;*,()?]+)[^>]*(<\/.*>)/gmi;
     this.translator = new GoogleClient(opts.target);
     this.target = opts.target;
     this.srcDir = opts.src;
     this.distDir = opts.dist;
   }
 
-  start() {
+  start(): void {
     fileUtils.isFile(this.srcDir).then(result => {
       fileUtils.createDirectory(this.distDir);
 
@@ -38,7 +46,7 @@ export default class PfsTool {
     });
   }
 
-  _processDirectory() {
+  _processDirectory(): void {
     fileUtils.walkThoughDir(this.srcDir)
       .then((results) => {
         // Filter out .jsp files
@@ -56,56 +64,73 @@ export default class PfsTool {
       });
   }
 
-  _extractText(data, callback) {
-    // const regex = /<.*>([^.#@!$^&':;*,()}][\s\w]*[\d\w.#@!$^&':;*,()]+)[^>]*<\/.*>/gmi;
-    const regex = /<(?![\s\w]*script).*>([^.#@!^&':;*,()?}][\s\w]*[\d\w.#@!$^&':;*,()?]+)[^>]*<\/.*>/gmi;
+  _extractText(data: string): Array<string> {
     const result = [];
     let tmp;
-    while (tmp = regex.exec(data)) {
-      result.push(tmp[1].trim());
-      if (callback && typeof callback === 'function') callback(tmp);
+
+    while (tmp = this.textExtractRegex.exec(data)) {
+      result.push(tmp[2].trim());
     }
+
     return result;
   }
 
-  _extractFileName(filePath) {
+  _extractFileName(filePath: string): string {
     const regex = /^.*\/([\w]*).jsp$/gmi;
     return regex.exec(filePath)[1];
   }
 
-  _buildProps(fileName, extractedTexts) {
+  _buildPropKey(fileName: string, extractedText: string): string {
     // props format: file.name.extracted.text = extractedText
     // props key: word by word
-    const originProps = new Set();
-    const translatedProps = new Set();
+    const toWordByWord = (text: string) => _.words(text).map(word => word.toLowerCase()).join('.');
 
-    const propKey1 = _.words(fileName).map(word => word.toLowerCase()).join('.');
+    const propKey1 = toWordByWord(fileName);
+    const propKey2 = toWordByWord(extractedText);
+
+    return `${propKey1}.${propKey2}`;
+  }
+
+  _buildPropsMap(fileName: string, extractedTexts: any): Property {
+    const origin: Map<string, string> = new Map();
+    const translated: Map<string, string> = new Map();
 
     // Convert extractedTexts into array when it has one text
-    if (!_.isArray(extractedTexts)) extractedTexts = [extractedTexts];
-
-    for (let extractedText of extractedTexts) {
-      const contentWords = _.words(extractedText.originalText).map(word => word.toLowerCase());
-      const propKey = `${propKey1}.${contentWords.join('.')}`;
-
-      originProps.add(`${propKey} = ${extractedText.originalText}`);
-      translatedProps.add(`${propKey} = ${extractedText.translatedText}`);
+    if (!_.isArray(extractedTexts)) {
+      extractedTexts = [extractedTexts];
     }
 
+    extractedTexts.forEach((extractedText: ExtractedText) => {
+      const propKey: string = this._buildPropKey(fileName, extractedText.originalText);
+
+      // To make sure each text is unique, text is the key of map
+      origin.set(extractedText.originalText, propKey);
+      translated.set(extractedText.translatedText, propKey);
+    });
+
     return {
-      origin: Array.from(originProps),
-      translated: Array.from(translatedProps)
+      origin,
+      translated,
     };
   }
 
-  _processFile(filePath) {
+  _processFile(filePath: string): void {
     fileUtils.readFile(filePath)
       .then(content => {
-        const fileName = this._extractFileName(filePath);
         const extractedTexts = this._extractText(content);
+
+        return Promise.all([content, this.translator.translate([...extractedTexts])]);
+      })
+      .then(([content, translatedTexts]: [string, Array<ExtractedText>]) => {
+        const fileName = this._extractFileName(filePath);
         logger.highlightGreen(`fileName: ${fileName}`);
 
-        this._translateExtractedTexts(fileName, extractedTexts);
+        const propsMap = this._buildPropsMap(fileName, translatedTexts);
+
+        this._exportPropsFile(fileName, propsMap.origin);
+        this._exportPropsFile(`${fileName}_${this.target}`, propsMap.translated);
+
+        this._replaceTextByTaglib(filePath, content, propsMap.origin);
       })
       .catch(error => {
         logger.error(`fail when processFile ${filePath}`);
@@ -114,22 +139,41 @@ export default class PfsTool {
       });
   }
 
-  _translateExtractedTexts(fileName, texts) {
-    this.translator.translate([...texts])
-      .then(extractedTexts => {
-        const props = this._buildProps(fileName, extractedTexts);
+  _exportPropsFile(fileName: string, propsMap: Map<string, string>): void {
+    const props: Array<string> = Array.from(propsMap, ([text, propKey]) => `${propKey} = ${text}`);
 
-        this._exportPropsFile(fileName, props.origin);
-        this._exportPropsFile(`${fileName}_${this.target}`, props.translated);
-      })
-      .catch(error => logger.error(error));
-  }
-
-  _exportPropsFile(fileName, props) {
-    fileUtils.writeFile(`${this.distDir}/${fileName}.properties`, props)
+    fileUtils.writeArrayToFile(`${this.distDir}/${fileName}.properties`, props)
       .then(result => {
         if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
       })
       .catch(error => logger.error(error));
   }
+
+  _replaceTextByTaglib(filePath: string, content: string, propsMap: Map<string, string>): string {
+    const replacer = (match, g1, g2, g3) => {
+      const propKey = propsMap.get(g2) || g2;
+      return `${g1}<fmt:message key="${propKey}" />${g3}`;
+    };
+
+    const newContent = content.replace(this.textExtractRegex, replacer);
+    fileUtils.writeFile(filePath, newContent);
+
+    return newContent;
+  }
+}
+
+type ExtractedText = {
+  originalText: string,
+  translatedText: string,
+}
+
+type OptionArgument = {
+  target: string,
+  src: string,
+  dist: string,
+}
+
+type Property = {
+  origin: Map<string, string>,
+  translated: Map<string, string>,
 }
