@@ -15,7 +15,17 @@ yargs
       alias: 't',
       default: 'zh',
       describe: 'Target language for translation',
-    }
+    },
+    'overwrite': {
+        alias: 'o',
+        default: false,
+        describe: 'overwrite file if exist',
+    },
+      'export': {
+          alias: 'exp',
+          default: false,
+          describe: 'export to .csv file',
+      },
   })
   .command('scan [src]', 'Run tool to scan directory/file', {},
     (opts) => {
@@ -31,6 +41,11 @@ yargs
         })
         .catch(err => logger.error(err));
     })
+    .command('export [path1] [path2]', 'export to .csv file', {},
+        (opts) => {
+            const app = new PfsTool(opts);
+            app.exportCSV(opts.path1, opts.path2);
+        })
   .demandCommand(1, 'You need at least one command before moving on')
   .recommendCommands()
   .epilogue('For more information, see https://github.com/phamvanthang310/PFS-tools')
