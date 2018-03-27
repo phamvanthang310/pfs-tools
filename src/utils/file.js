@@ -35,7 +35,7 @@ const walkThoughDir = (rootDir) => {
 
 const readFile = (path) => {
   return new Promise((resolve, reject) => {
-    fs.readFile(path, { encoding: 'utf8' }, (err, data) => {
+    fs.readFile(path, {encoding: 'utf8'}, (err, data) => {
       if (err) reject(err);
       resolve(data);
     });
@@ -52,8 +52,7 @@ const isFile = (path) => {
 };
 
 const writeArrayToFile = (fileName, array, options) => {
-  //return writeFile(fileName, array.join('\n'));
-    return writeFileStream(fileName, array.join('\n'), options);
+  return writeFileStream(fileName, array.join('\n'), options);
 };
 
 const writeFile = (filePath, data) => {
@@ -65,14 +64,14 @@ const writeFile = (filePath, data) => {
   });
 };
 
-const writeFileStream = (filePath, data,options) => {
-    let writerStream = fs.createWriteStream(filePath,options);
-    return new Promise((resolve, reject) => {
-        writerStream.write(data, (err) => {
-            if (err) reject(err);
-            resolve(true);
-        });
+const writeFileStream = (filePath, data, options) => {
+  let writerStream = fs.createWriteStream(filePath, options);
+  return new Promise((resolve, reject) => {
+    writerStream.write(data, (err) => {
+      if (err) reject(err);
+      resolve(true);
     });
+  });
 };
 
 const readFileSync = (filePath) => {
