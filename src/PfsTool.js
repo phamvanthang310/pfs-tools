@@ -7,10 +7,14 @@ import fileUtils from './utils/file';
 
 export default class PfsTool {
   textExtractRegex: RegExp;
+  regex: RegExp;
   translator: any;
   target: string;
   srcDir: string;
   distDir: string;
+  isExport: boolean;
+  options: Object;
+  basename: string;
 
   constructor(opts: OptionArgument) {
     ConsoleStamp(console, {
@@ -20,21 +24,20 @@ export default class PfsTool {
         label: 'blue',
       },
     });
-    //this.regex = /^.*\/([\w]*).jsp$/gmi;
-    logger.debug(opts.src);
-
+    this.regex = /^.*[\\|/]([\w]*).jsp.*$/gmi;
     this.textExtractRegex = /(<(?![\s\w]*script).*>)([^.#@!^&':;*,()?}][\s\w]*[\d\w.#@!$^&':;*,()?]+)[^>]*(<\/.*>)/gmi;
     this.translator = new GoogleClient(opts.target);
     this.target = opts.target;
     this.srcDir = opts.src;
     this.distDir = opts.dist;
     this.isExport = opts.export;
+    this.basename = opts.basename;
     this.options = {
-          flags: opts.overwrite ? 'w' : 'a',
-          encoding: 'utf8',
-          fd: null,
-          autoClose: true
-      };
+      flags: opts.overwrite ? 'w' : 'a',
+      encoding: 'utf8',
+      fd: null,
+      autoClose: true
+    };
   }
 
   start(): void {
@@ -74,7 +77,6 @@ export default class PfsTool {
   _extractText(data: string): Array<string> {
     const result = [];
     let tmp;
-      //logger.error(this.textExtractRegex.exec(data));
     while (tmp = this.textExtractRegex.exec(data)) {
       result.push(tmp[2].trim());
     }
@@ -82,8 +84,9 @@ export default class PfsTool {
   }
 
   _extractFileName(filePath: string): string {
-    const regex = /^.*[\\|/]([\w]*).jsp.*$/gmi;
-    return regex.exec(filePath)[1];
+    const tmp = this.regex.exec(filePath)[1];
+    this.regex.lastIndex = 0;
+    return tmp;
   }
 
   _buildPropKey(fileName: string, extractedText: string): string {
@@ -120,31 +123,41 @@ export default class PfsTool {
     };
   }
 
-  exportCSV(path1,path2){
-      const file1 = fileUtils.readFileSync(path1);
-      const file2 = fileUtils.readFileSync(path2);
+  exportCSV(path1: string, path2: string) {
+    const file1 = fileUtils.readFileSync(path1);
+    const file2 = fileUtils.readFileSync(path2);
+    let list = [];
+    let tmp: string[];
+
+    const regex = /^(.*) = (.*)$/gmi;
+    let map = new Map;
+
+    while (tmp = regex.exec(file1)) {
+      map.set(tmp[1], `${tmp[1]},${tmp[2]}`);
+    }
+    while (tmp = regex.exec(file2)) {
       let list = [];
-      let tmp1, tmp2;
-
-      const regex = /^(.*) = (.*)$/gmi;
-      const regex2 = /^(.*) = (.*)$/gmi;
-
-      while ((tmp1 = regex.exec(file1))&&(tmp2 = regex2.exec(file2))) {
-          list.push(`${tmp1[1]},${tmp1[2]},${tmp2[2]}`);
+      if (map.has(tmp[1])) {
+        list.push(map.get(tmp[1]));
+        list.push(tmp[2]);
+        map.set(tmp[1], list.join(','))
+      } else {
+        map.set(tmp[1], `${tmp[1]},${tmp[2]}`)
       }
+    }
 
-      fileUtils.writeArrayToFile(`${this.distDir}/all.csv`, list)
-          .then(result => {
-              if (result) logger.success(`[all.csv] is exported successfully!`);
-          })
-          .catch(error => logger.error(error));
+    fileUtils.writeArrayToFile(`${this.distDir}/${this.basename}.csv`, Array.from(map.values()))
+      .then(result => {
+        if (result) logger.success(`[${this.basename}.csv] is exported successfully!`);
+      })
+      .catch(error => logger.error(error));
   }
 
   _processFile(filePath: string): void {
     fileUtils.readFile(filePath)
       .then(content => {
         const extractedTexts = this._extractText(content);
-        if(extractedTexts===null||extractedTexts.toString()===""){
+        if (extractedTexts === null || extractedTexts.toString() === "") {
           logger.error("Nothing to convert!!");
           return '';
         }
@@ -156,11 +169,11 @@ export default class PfsTool {
 
         const propsMap = this._buildPropsMap(fileName, translatedTexts);
 
-        this._exportPropsFile("all", propsMap.origin);
-        this._exportPropsFile(`all_${this.target}`, propsMap.translated);
+        this._exportPropsFile(this.basename, propsMap.origin);
+        this._exportPropsFile(`${this.basename}_${this.target}`, propsMap.translated);
         this.options.flags = 'a';
-        if(this.isExport) {
-            this._exportCSVFile(fileName, propsMap);
+        if (this.isExport) {
+          this._exportCSVFile(fileName, propsMap);
         }
 
         this._replaceTextByTaglib(filePath, content, propsMap.origin);
@@ -169,8 +182,7 @@ export default class PfsTool {
 
         logger.error(`fail when processFile ${filePath}`);
         logger.error(error);
-        //process.exit(-1);
-          return
+        return;
       });
   }
 
@@ -178,28 +190,23 @@ export default class PfsTool {
     const props: Array<string> = Array.from(propsMap, ([propKey, text]) => `${propKey} = ${text}`);
 
     props.push('');
-    /*fileUtils.writeArrayToFile(`${this.distDir}/${fileName}.properties`, props)
+    fileUtils.writeArrayToFile(`${this.distDir}/${fileName}.properties`, props, this.options)
       .then(result => {
         if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
       })
-      .catch(error => logger.error(error));*/
-      fileUtils.writeArrayToFile(`${this.distDir}/${fileName}.properties`, props,this.options)
-          .then(result => {
-              if (result) logger.success(`[${fileName}.properties] is exported successfully!`);
-          })
-          .catch(error => logger.error(error));
+      .catch(error => logger.error(error));
   }
 
-    _exportCSVFile(fileName: string, propsMap): void {
+  _exportCSVFile(fileName: string, propsMap: Object): void {
     const trans = propsMap.translated;
-        const props: Array<string> = Array.from(propsMap.origin, ([propKey, text]) => `${propKey},${text},${trans.get(propKey)}`);
+    const props: Array<string> = Array.from(propsMap.origin, ([propKey, text]) => `${propKey},${text},${trans.get(propKey)}`);
 
-        fileUtils.writeArrayToFile(`${this.distDir}/all.csv`, props,this.options)
-            .then(result => {
-                if (result) logger.success(`[all.csv] is exported successfully!`);
-            })
-            .catch(error => logger.error(error));
-    }
+    fileUtils.writeArrayToFile(`${this.distDir}/${this.basename}.csv`, props, this.options)
+      .then(result => {
+        if (result) logger.success(`[${this.basename}.csv] is exported successfully!`);
+      })
+      .catch(error => logger.error(error));
+  }
 
   _replaceTextByTaglib(filePath: string, content: string, propsMap: Map<string, string>): string {
     const replacer = (match, g1, g2, g3) => {
@@ -223,11 +230,14 @@ type OptionArgument = {
   target: string,
   src: string,
   dist: string,
-  overwrite:boolean,
-  export:boolean,
+  overwrite: boolean,
+  export: boolean,
+  basename: string,
 }
 
 type Property = {
   origin: Map<string, string>,
   translated: Map<string, string>,
 }
+
+type Options = {}
