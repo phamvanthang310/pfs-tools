@@ -157,7 +157,7 @@ export default class PfsTool {
     fileUtils.readFile(filePath)
       .then(content => {
         const extractedTexts = this._extractText(content);
-        if (extractedTexts) {
+        if (!extractedTexts) {
           logger.error("Nothing to convert!!");
           return '';
         }
