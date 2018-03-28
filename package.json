@@ -6,7 +6,7 @@
   "scripts": {
     "pretest": "npm run compile",
     "prepublish": "npm run compile",
-    "compile": "rm -rf lib && babel src -s --out-dir lib",
+    "compile": "flow && babel src -s --out-dir lib",
     "watcher": "babel src -s -w --out-dir lib",
     "test": "jasmine",
     "flow": "flow",

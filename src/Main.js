@@ -15,6 +15,21 @@ yargs
       alias: 't',
       default: 'zh',
       describe: 'Target language for translation',
+    },
+    'overwrite': {
+      alias: 'o',
+      default: false,
+      describe: 'overwrite file if exist',
+    },
+    'export': {
+      alias: 'exp',
+      default: false,
+      describe: 'export to .csv file',
+    },
+    'basename': {
+      alias: 'n',
+      default: 'ApplicationMessages',
+      describe: 'set basename of properties file',
     }
   })
   .command('scan [src]', 'Run tool to scan directory/file', {},
@@ -30,6 +45,11 @@ yargs
           logger.info(result.translatedText);
         })
         .catch(err => logger.error(err));
+    })
+  .command('export [path1] [path2]', 'export to .csv file', {},
+    (opts) => {
+      const app = new PfsTool(opts);
+      app.exportCSV(opts.path1, opts.path2);
     })
   .demandCommand(1, 'You need at least one command before moving on')
   .recommendCommands()
