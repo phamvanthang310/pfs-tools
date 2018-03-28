@@ -32,7 +32,6 @@ export default class PfsTool {
     this.distDir = opts.dist;
     this.isExport = opts.export;
     this.basename = opts.basename;
-    logger.debug(opts.basename)
     this.options = {
       flags: opts.overwrite ? 'w' : 'a',
       encoding: 'utf8',
