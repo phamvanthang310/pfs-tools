@@ -27,9 +27,9 @@ yargs
       describe: 'export to .csv file',
     },
     'basename': {
-      alias: 'bsname',
+      alias: 'n',
       default: 'ApplicationMessages',
-      describe: 'set basename of properties file'
+      describe: 'set basename of properties file',
     }
   })
   .command('scan [src]', 'Run tool to scan directory/file', {},
