@@ -51,6 +51,11 @@ yargs
       const app = new PfsTool(opts);
       app.exportCSV(opts.path1, opts.path2);
     })
+  .command('fix-dup [src]', 'Translate a english text to specify language (default is zh)', {},
+    (opts) => {
+      const app = new PfsTool(opts);
+      app.fixDuplicate();
+    })
   .demandCommand(1, 'You need at least one command before moving on')
   .recommendCommands()
   .epilogue('For more information, see https://github.com/phamvanthang310/PFS-tools')

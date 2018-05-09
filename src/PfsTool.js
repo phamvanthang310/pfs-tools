@@ -219,6 +219,91 @@ export default class PfsTool {
 
     return newContent;
   }
+
+  fixDuplicate() {
+    fileUtils.isFile(this.srcDir).then(result => {
+      if (result) {
+        this._formatFileDuplicate(this.srcDir);
+      }
+    }).catch(error => {
+      logger.error('Fail when executed fs.fixDuplicate');
+      logger.error(error);
+      process.exit(-1);
+    });
+  }
+  _formatFileDuplicate(filePath: string): void {
+    fileUtils.readFile(filePath)
+      .then(content => {
+        const extractedTexts = this._extractTextByLine(content);
+        if (!extractedTexts) {
+          logger.error("Nothing duplicate!!");
+          return '';
+        }
+
+        logger.success(`Number duplicate: ${extractedTexts.length}`);
+        let line = 1;
+        extractedTexts.forEach(item => {
+          logger.success(`${line++}.${item.key} = ${item.value}`);
+        });
+        this._replaceTextDuplicate(filePath, content, extractedTexts);
+
+        const fileName = /^.*[\\|/]([\w]*).properties.*$/gmi.exec(filePath)[1];
+        const pathFileZH = filePath.replace(fileName, `${fileName}_${this.target}`);
+        fileUtils.readFile(pathFileZH)
+          .then(contentZH => {
+            if (!contentZH) {
+              logger.error("Nothing duplicate!!");
+              return '';
+            }
+            this._replaceTextDuplicate(pathFileZH, contentZH, extractedTexts, true);
+          }).catch(error => {
+            logger.error(`fail when processFile ${pathFileZH}`);
+            logger.error(error);
+            return;
+          });
+      }).catch(error => {
+        logger.error(`fail when processFile ${filePath}`);
+        logger.error(error);
+        return;
+      });
+  }
+  _extractTextByLine(data: string): any {
+    const values = [], dupValue = [];
+    const textExtractByLineReg = /^([^=]+)=(.+)$/gmi;
+    let tmp;
+    while (tmp = textExtractByLineReg.exec(data)) {
+      const curVal = tmp[2].trim();
+      if (!values.includes(curVal)) {
+        values.push(curVal);
+      } else {
+        dupValue.push({
+          key: tmp[1].trim(), value: curVal
+        });
+      }
+    }
+
+    dupValue.sort(function (a, b) {
+      var nameA = a.value.toLowerCase(), nameB = b.value.toLowerCase();
+      if (nameA < nameB) return -1;
+      if (nameA > nameB) return 1;
+      return 0;
+    });
+    return dupValue.length > 0 ? dupValue : null;
+  }
+  _replaceTextDuplicate(filePath: string, content: string, extractedTexts: Array<any>, isZH: boolean = false): void {
+    let newContent = content;
+    if (isZH) {
+      extractedTexts.forEach(item => {
+        newContent = newContent.replace(new RegExp(`(${item.key}.+)[\r\n]`), '');
+      });
+      logger.success('Completed fix duplicate for zh file');
+    } else {
+      extractedTexts.forEach(item => {
+        newContent = newContent.replace(`${item.key} = ${item.value}\r\n`, '');
+      });
+    }
+    fileUtils.writeFile(filePath, newContent);
+  }
 }
 
 type ExtractedText = {
