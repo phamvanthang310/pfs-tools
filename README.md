@@ -10,7 +10,7 @@ Property files are exported under `/dist` directory. File name format: `{filenam
 
 ### Example:
 #### Input
-example.jsp:
+EntityTypeDetails.jsp:
 ```jsp
 <div class="list-group-item">
     <div class="row">
@@ -21,11 +21,11 @@ example.jsp:
 ```
 
 #### Output
-example.jsp
+EntityTypeDetails.jsp
 ```jsp
 <div class="list-group-item">
     <div class="row">
-        <div class="col-sm-4"><label><fmt:message key="entity.type.details.should.this.entity.type.be.navigable" /></label></div>
+        <div class="col-sm-4"><label><fmt:message key="entityTypeDetails.text.shouldThisEntityTypeBeNavigable" /></label></div>
         <div class="col-sm-8"><%=entityType.isNavigable()%></div>
     </div>
 </div>
@@ -33,12 +33,12 @@ example.jsp
 
 result.properties
 ```properties
-entity.type.details.should.this.entity.type.be.navigable = Should this Entity Type be navigable?:
+entityTypeDetails.text.shouldThisEntityTypeBeNavigable = Should this Entity Type be navigable?:
 ```
 
 result_zh.properties
 ```properties
-entity.type.details.should.this.entity.type.be.navigable = 该实体类型是否可导航？:
+entityTypeDetails.text.shouldThisEntityTypeBeNavigable = 该实体类型是否可导航？:
 ```
 
 ## Command:
@@ -48,15 +48,20 @@ Command is built by using [yargs](http://yargs.js.org).
 node index.js <commands> [args]
 
 Commands:
-  scan [src]        Run tool to scan directory/file
-  translate [text]  Translate a english text to specify language
-                             (default is zh)
+  index.js scan [src]              Run tool to scan directory/file
+  index.js translate [text]        Translate a english text to specify language
+                                   (default is zh)
+  index.js export [path1] [path2]  export to .csv file
 
 Options:
-  --version     Show version number                                    [boolean]
-  --dist, -d    Exported file destination directory          [default: "./dist"]
-  --target, -t  Target language for translation                  [default: "zh"]
-  --help        Show help                                              [boolean]
+  --version        Show version number                                 [boolean]
+  --dist, -d       Exported file destination directory       [default: "./dist"]
+  --target, -t     Target language for translation               [default: "zh"]
+  --overwrite, -o  overwrite file if exist                      [default: false]
+  --export, --exp  export to .csv file                          [default: false]
+  --basename, -n   set basename of properties file
+                                                [default: "ApplicationMessages"]
+  --help           Show help                                           [boolean]
 
 For more information, see https://github.com/phamvanthang310/PFS-tools
 

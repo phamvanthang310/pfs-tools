@@ -90,14 +90,18 @@ export default class PfsTool {
   }
 
   _buildPropKey(fileName: string, extractedText: string): string {
-    // props format: file.name.extracted.text = extractedText
-    // props key: word by word
-    const toWordByWord = (text: string) => _.words(text).map(word => word.toLowerCase()).join('.');
+    // props format: <fileName>.<type>.<displayedText> = extractedText
+    const maxWords: number = 8;
+    const camelCaseWord = (text: string) => {
+      const words = _.words(text).map(word => _.capitalize(word));
+      const result = words.slice(0, maxWords).join('');
+      return _.camelCase(result);
+    };
 
-    const propKey1 = toWordByWord(fileName);
-    const propKey2 = toWordByWord(extractedText);
+    const propKey1 = _.camelCase(fileName);
+    const propKey2 = camelCaseWord(extractedText);
 
-    return `${propKey1}.${propKey2}`;
+    return `${propKey1}.text.${propKey2}`;
   }
 
   _buildPropsMap(fileName: string, extractedTexts: any): Property {
@@ -113,8 +117,8 @@ export default class PfsTool {
       const propKey: string = this._buildPropKey(fileName, extractedText.originalText);
 
       // To make sure each text is unique, text is the key of map
-      origin.set(propKey, extractedText.originalText);
-      translated.set(propKey, extractedText.translatedText);
+      origin.set(extractedText.originalText, propKey);
+      translated.set(extractedText.translatedText, propKey);
     });
 
     return {
@@ -187,7 +191,7 @@ export default class PfsTool {
   }
 
   _exportPropsFile(fileName: string, propsMap: Map<string, string>): void {
-    const props: Array<string> = Array.from(propsMap, ([propKey, text]) => `${propKey} = ${text}`);
+    const props: Array<string> = Array.from(propsMap, ([text, propKey]) => `${propKey} = ${text}`);
 
     props.push('');
     fileUtils.writeArrayToFile(`${this.distDir}/${fileName}.properties`, props, this.options)
@@ -199,7 +203,7 @@ export default class PfsTool {
 
   _exportCSVFile(fileName: string, propsMap: Object): void {
     const trans = propsMap.translated;
-    const props: Array<string> = Array.from(propsMap.origin, ([propKey, text]) => `${propKey},${text},${trans.get(propKey)}`);
+    const props: Array<string> = Array.from(propsMap.origin, ([text, propKey]) => `${propKey},${text},${trans.get(propKey)}`);
 
     fileUtils.writeArrayToFile(`${this.distDir}/${this.basename}.csv`, props, this.options)
       .then(result => {
