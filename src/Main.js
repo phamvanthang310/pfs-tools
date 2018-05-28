@@ -51,6 +51,11 @@ yargs
       const app = new PfsTool(opts);
       app.exportCSV(opts.path1, opts.path2);
     })
+  .command('duplicate [src] [propsFilePath]', 'Replace all duplicated English String', {},
+    (opts) => {
+      const app = new PfsTool(opts);
+      app.fixDuplicate(opts.propsFilePath);
+    })
   .demandCommand(1, 'You need at least one command before moving on')
   .recommendCommands()
   .epilogue('For more information, see https://github.com/phamvanthang310/PFS-tools')

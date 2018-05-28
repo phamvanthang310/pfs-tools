@@ -76,7 +76,7 @@ const writeFileStream = (filePath, data, options) => {
 
 const readFileSync = (filePath) => {
   return fs.readFileSync(filePath);
-}
+};
 
 const createDirectory = (dir) => {
   if (!fs.existsSync(dir)) fs.mkdirSync(dir);

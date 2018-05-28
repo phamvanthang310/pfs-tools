@@ -4,6 +4,7 @@ import GoogleClient from './GoogleClient';
 import _ from 'lodash';
 import logger from './utils/logger';
 import fileUtils from './utils/file';
+import path from 'path';
 
 export default class PfsTool {
   textExtractRegex: RegExp;
@@ -162,7 +163,7 @@ export default class PfsTool {
       .then(content => {
         const extractedTexts = this._extractText(content);
         if (!extractedTexts) {
-          logger.error("Nothing to convert!!");
+          logger.error('Nothing to convert!!');
           return '';
         }
         return Promise.all([content, this.translator.translate([...extractedTexts])]);
@@ -222,6 +223,120 @@ export default class PfsTool {
     fileUtils.writeFile(filePath, newContent);
 
     return newContent;
+  }
+
+  fixDuplicate(propsFilePath: string) {
+    logger.info(`Fix duplicated for: ${this.srcDir}`);
+    logger.info(`Properties file path: ${propsFilePath}`);
+
+    Promise.all([this._processPropsFile(propsFilePath), this._readFileToMap(this.srcDir)]).then(([{ dupValues, originValues }, fileCache]) => {
+      logger.success(`total dup props: ${dupValues.length}`);
+      logger.success(`total file cached: ${fileCache.size}`);
+
+      const newProps = [];
+      const mapToProps = (value, key) => newProps.push(`${key} = ${value}`);
+      this._processJavaAndPropsFile(fileCache, dupValues).forEach(mapToProps);
+
+      // Update all files
+      fileCache.forEach((content, filePath) => {
+        fileUtils.writeFile(filePath, content);
+      });
+
+      // Write out props files
+      originValues.forEach(mapToProps);
+      fileUtils.writeArrayToFile(propsFilePath, newProps);
+
+      logger.highlightGreen('Finished!');
+    }).catch(error => logger.error(error))
+  }
+
+  _processPropsFile(propsFilePath: string): any {
+    return new Promise((resolve, reject) => {
+      fileUtils.isFile(propsFilePath).then(isFile => {
+        if (isFile) {
+          fileUtils.readFile(propsFilePath).then(content => {
+            resolve(this._findDuplicatedProps(content));
+          });
+        } else {
+          reject(`${propsFilePath} is not a file.`);
+        }
+      }).catch(error => {
+        reject(`${propsFilePath} is not a file. \n ${error}`);
+      });
+    });
+  }
+
+  _findDuplicatedProps(data: string): { dupValues: Array<any>, originValues: Map<any, any> } {
+    const values = [], dupValues = [], origin = new Map();
+    const textExtractByLineReg = /^([^=]+)=(.+)$/gmi;
+    let tmp;
+
+    while (tmp = textExtractByLineReg.exec(data)) {
+      const value = tmp[2].trim();
+      const key = tmp[1].trim();
+      origin.set(key, value);
+
+      if (!values.includes(value)) {
+        values.push(value);
+      } else {
+        dupValues.push({
+          key, value
+        });
+      }
+    }
+
+    // remove duplicated value from origin map then write out
+    dupValues.forEach(({ key }) => {
+      if (origin.has(key))
+        origin.delete(key)
+    });
+
+    return { dupValues, originValues: origin };
+  }
+
+  _readFileToMap(srcDir: string): any {
+    return new Promise((resolve, reject) => {
+      fileUtils.walkThoughDir(srcDir).then(filePaths => {
+        const result = new Map();
+        let pending = 0;
+
+        filePaths = filePaths
+          .filter(filePath => path.extname(filePath) === '.jsp' || path.extname(filePath) === '.java');
+
+        filePaths.forEach((filePath, index) => {
+          pending += 1;
+
+          fileUtils.readFile(filePath).then(content => {
+
+            pending -= 1;
+            result.set(filePath, content);
+            if (pending === 0 && index === filePaths.length - 1) {
+              resolve(result);
+            }
+          }).catch(error => reject(error));
+        });
+
+      }).catch(error => reject(error));
+    });
+  }
+
+  _processJavaAndPropsFile(fileCache: Map<string, string>, dupProps: Array<any>): Map<string, string> {
+    const newProps = new Map();
+    dupProps.forEach(({ value, key }) => {
+      const regex = new RegExp(`${key}`, 'g');
+      const newKey = key.replace(/(.*)[.](.*)[.](.*)/g, (match, g1, g2, g3) => `common.${g2}.${g3}`);
+      const newCache = fileCache;
+
+      fileCache.forEach((content, filePath) => {
+        const newContent = content.replace(regex, `${newKey}`);
+        newCache.set(filePath, newContent);
+      });
+
+      fileCache = newCache;
+      newProps.set(newKey, value);
+    });
+
+    return newProps;
   }
 }
 
