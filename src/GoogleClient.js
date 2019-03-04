@@ -8,10 +8,12 @@ export default class GoogleClient {
 
   translate(text) {
     return new Promise(((resolve, reject) => {
-      this.translator.translate(text, this.targetLanguage, (err, result) => {
-        if (err) reject(err);
-        resolve(result);
-      });
+      resolve(text.map(t => {
+        return ({
+          originalText: t,
+          translatedText: `untranslated ${t}`,
+        });
+      }));
     }));
   }
 }
