@@ -79,7 +79,7 @@ export default class PfsTool {
     const result = [];
     let tmp;
     while (tmp = this.textExtractRegex.exec(data)) {
-      result.push(tmp[2].trim());
+      result.push(`${tmp[0]} => ${tmp[2].trim()}`);
     }
     return result;
   }
@@ -145,9 +145,9 @@ export default class PfsTool {
       if (map.has(tmp[1])) {
         list.push(map.get(tmp[1]));
         list.push(tmp[2]);
-        map.set(tmp[1], list.join(','))
+        map.set(tmp[1], list.join(','));
       } else {
-        map.set(tmp[1], `${tmp[1]},${tmp[2]}`)
+        map.set(tmp[1], `${tmp[1]},${tmp[2]}`);
       }
     }
 
@@ -229,7 +229,7 @@ export default class PfsTool {
     logger.info(`Fix duplicated for: ${this.srcDir}`);
     logger.info(`Properties file path: ${propsFilePath}`);
 
-    Promise.all([this._processPropsFile(propsFilePath), this._readFileToMap(this.srcDir)]).then(([{ dupValues, originValues }, fileCache]) => {
+    Promise.all([this._processPropsFile(propsFilePath), this._readFileToMap(this.srcDir)]).then(([{dupValues, originValues}, fileCache]) => {
       logger.success(`total dup props: ${dupValues.length}`);
       logger.success(`total file cached: ${fileCache.size}`);
 
@@ -247,7 +247,7 @@ export default class PfsTool {
       fileUtils.writeArrayToFile(propsFilePath, newProps);
 
       logger.highlightGreen('Finished!');
-    }).catch(error => logger.error(error))
+    }).catch(error => logger.error(error));
   }
 
   _processPropsFile(propsFilePath: string): any {
@@ -286,12 +286,12 @@ export default class PfsTool {
     }
 
     // remove duplicated value from origin map then write out
-    dupValues.forEach(({ key }) => {
+    dupValues.forEach(({key}) => {
       if (origin.has(key))
-        origin.delete(key)
+        origin.delete(key);
     });
 
-    return { dupValues, originValues: origin };
+    return {dupValues, originValues: origin};
   }
 
   _readFileToMap(srcDir: string): any {
@@ -322,7 +322,7 @@ export default class PfsTool {
 
   _processJavaAndPropsFile(fileCache: Map<string, string>, dupProps: Array<any>): Map<string, string> {
     const newProps = new Map();
-    dupProps.forEach(({ value, key }) => {
+    dupProps.forEach(({value, key}) => {
       const regex = new RegExp(`${key}`, 'g');
       const newKey = key.replace(/(.*)[.](.*)[.](.*)/g, (match, g1, g2, g3) => `common.${g2}.${g3}`);
       const newCache = fileCache;
